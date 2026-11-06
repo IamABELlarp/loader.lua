@@ -1,0 +1,391 @@
+--[[
+    Server Priv Finder - Mobile/BlueStacks Edition
+    Modificado para funcionar perfectamente en Delta Executor (Celular)
+    Key: SEVERPRIV2026
+]]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local REQUIRED_KEY = "SEVERPRIV2026"
+
+-- ⚠️ FORZAMOS PlayerGui PARA EVITAR FALLOS EN MÓVIL/BLUESTACKS
+local GUI_PARENT = player:WaitForChild("PlayerGui")
+
+-- Evitar duplicados
+if getgenv and getgenv().ServerPrivFinderLoaded then
+    local old = GUI_PARENT:FindFirstChild("ServerPrivFinderKey") or GUI_PARENT:FindFirstChild("ServerPrivFinderMain")
+    if old then old:Destroy() end
+end
+if getgenv then getgenv().ServerPrivFinderLoaded = true end
+
+local function makeCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius)
+    corner.Parent = parent
+end
+
+local function makeStroke(parent, color, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color
+    stroke.Thickness = thickness
+    stroke.Transparency = 0.15
+    stroke.Parent = parent
+end
+
+-- FUNCIÓN MAESTRA PARA ARRASTRAR CON EL DEDO (TÁCTIL)
+local function makeDraggable(frame, dragArea)
+    local dragging, dragInput, dragStart, startPos
+    dragArea = dragArea or frame
+
+    dragArea.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    dragArea.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+----------------------------------------------------------------
+-- PANTALLA DE KEY (CENTRADA Y PARA MÓVIL)
+----------------------------------------------------------------
+local function createKeyScreen()
+    local screen = Instance.new("ScreenGui")
+    screen.Name = "ServerPrivFinderKey"
+    screen.ResetOnSpawn = false
+    screen.IgnoreGuiInset = true
+    screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screen.Parent = GUI_PARENT
+
+    local background = Instance.new("Frame")
+    background.Size = UDim2.new(0, 320, 0, 300) -- Tamaño reducido para celular
+    background.AnchorPoint = Vector2.new(0.5, 0.5)
+    background.Position = UDim2.new(0.5, 0, 0.5, 0) -- Centrado
+    background.BackgroundColor3 = Color3.fromRGB(18, 20, 32)
+    background.BorderSizePixel = 0
+    background.Parent = screen
+    makeCorner(background, 16)
+    makeStroke(background, Color3.fromRGB(116, 214, 255), 2)
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -20, 0, 30)
+    title.Position = UDim2.new(0, 15, 0, 15)
+    title.BackgroundTransparency = 1
+    title.Text = "Server Priv Finder"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 20
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = background
+
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Size = UDim2.new(1, -20, 0, 20)
+    subtitle.Position = UDim2.new(0, 15, 0, 45)
+    subtitle.BackgroundTransparency = 1
+    subtitle.Text = "Private server access panel"
+    subtitle.Font = Enum.Font.Gotham
+    subtitle.TextSize = 14
+    subtitle.TextColor3 = Color3.fromRGB(181, 190, 208)
+    subtitle.TextXAlignment = Enum.TextXAlignment.Left
+    subtitle.Parent = background
+
+    local form = Instance.new("Frame")
+    form.Size = UDim2.new(1, -30, 0, 110)
+    form.Position = UDim2.new(0, 15, 0, 80)
+    form.BackgroundColor3 = Color3.fromRGB(25, 29, 42)
+    form.BorderSizePixel = 0
+    form.Parent = background
+    makeCorner(form, 12)
+    makeStroke(form, Color3.fromRGB(92, 111, 142), 1)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 0, 20)
+    label.Position = UDim2.new(0, 10, 0, 10)
+    label.BackgroundTransparency = 1
+    label.Text = "Enter your key"
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(213, 220, 255)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = form
+
+    local keyInput = Instance.new("TextBox")
+    keyInput.Size = UDim2.new(1, -20, 0, 40)
+    keyInput.Position = UDim2.new(0, 10, 0, 35)
+    keyInput.BackgroundColor3 = Color3.fromRGB(17, 21, 31)
+    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyInput.PlaceholderText = "SEVERPRIV2026"
+    keyInput.PlaceholderColor3 = Color3.fromRGB(143, 154, 176)
+    keyInput.Font = Enum.Font.GothamSemibold
+    keyInput.TextSize = 18
+    keyInput.ClearTextOnFocus = false
+    keyInput.BorderSizePixel = 0
+    keyInput.Text = ""
+    keyInput.Parent = form
+    makeCorner(keyInput, 8)
+    makeStroke(keyInput, Color3.fromRGB(90, 120, 255), 1)
+
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(1, -20, 0, 20)
+    status.Position = UDim2.new(0, 10, 0, 80)
+    status.BackgroundTransparency = 1
+    status.Text = "Key required to continue"
+    status.Font = Enum.Font.Gotham
+    status.TextSize = 12
+    status.TextColor3 = Color3.fromRGB(131, 142, 170)
+    status.TextXAlignment = Enum.TextXAlignment.Left
+    status.Parent = form
+
+    local unlock = Instance.new("TextButton")
+    unlock.Size = UDim2.new(1, -30, 0, 45)
+    unlock.Position = UDim2.new(0, 15, 0, 240)
+    unlock.BackgroundColor3 = Color3.fromRGB(87, 140, 255)
+    unlock.BorderSizePixel = 0
+    unlock.Text = "Unlock"
+    unlock.Font = Enum.Font.GothamBold
+    unlock.TextSize = 18
+    unlock.TextColor3 = Color3.fromRGB(255, 255, 255)
+    unlock.Parent = background
+    makeCorner(unlock, 10)
+
+    unlock.MouseButton1Click:Connect(function()
+        if keyInput.Text == REQUIRED_KEY then
+            status.Text = "Correct!"
+            status.TextColor3 = Color3.fromRGB(98, 255, 170)
+            task.wait(0.2)
+            screen:Destroy()
+            createMainScreen()
+        else
+            status.Text = "Incorrect key"
+            status.TextColor3 = Color3.fromRGB(255, 110, 110)
+            keyInput.Text = ""
+        end
+    end)
+
+    -- Hacer arrastrable (toda la ventana en móvil)
+    makeDraggable(background)
+end
+
+----------------------------------------------------------------
+-- PANTALLA PRINCIPAL (REDISEÑADA PARA MÓVIL)
+----------------------------------------------------------------
+function createMainScreen()
+    local oldKey = GUI_PARENT:FindFirstChild("ServerPrivFinderKey")
+    if oldKey then oldKey:Destroy() end
+
+    local screen = Instance.new("ScreenGui")
+    screen.Name = "ServerPrivFinderMain"
+    screen.ResetOnSpawn = false
+    screen.IgnoreGuiInset = true
+    screen.Parent = GUI_PARENT
+
+    local main = Instance.new("Frame")
+    main.Size = UDim2.new(0, 350, 0, 480) -- Tamaño ideal para celular
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.Position = UDim2.new(0.5, 0, 0.5, 0) -- Centrado
+    main.BackgroundColor3 = Color3.fromRGB(16, 18, 30)
+    main.BorderSizePixel = 0
+    main.Parent = screen
+    makeCorner(main, 16)
+    makeStroke(main, Color3.fromRGB(116, 219, 255), 2)
+
+    local header = Instance.new("Frame")
+    header.Size = UDim2.new(1, 0, 0, 80)
+    header.BackgroundColor3 = Color3.fromRGB(24, 29, 44)
+    header.BorderSizePixel = 0
+    header.Parent = main
+    makeCorner(header, 16)
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -60, 0, 25)
+    title.Position = UDim2.new(0, 15, 0, 15)
+    title.BackgroundTransparency = 1
+    title.Text = "Server Priv Finder"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 18
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = header
+
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Size = UDim2.new(1, -60, 0, 20)
+    subtitle.Position = UDim2.new(0, 15, 0, 45)
+    subtitle.BackgroundTransparency = 1
+    subtitle.Text = "Toca un enlace para copiarlo"
+    subtitle.Font = Enum.Font.Gotham
+    subtitle.TextSize = 12
+    subtitle.TextColor3 = Color3.fromRGB(170, 180, 205)
+    subtitle.TextXAlignment = Enum.TextXAlignment.Left
+    subtitle.Parent = header
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -40, 0, 15)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 98, 98)
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "X"
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 16
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Parent = header
+    makeCorner(closeBtn, 8)
+    closeBtn.MouseButton1Click:Connect(function()
+        screen:Destroy()
+        if getgenv then getgenv().ServerPrivFinderLoaded = nil end
+    end)
+
+    local searchBox = Instance.new("TextBox")
+    searchBox.Size = UDim2.new(1, -30, 0, 40)
+    searchBox.Position = UDim2.new(0, 15, 0, 95)
+    searchBox.BackgroundColor3 = Color3.fromRGB(24, 29, 42)
+    searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    searchBox.PlaceholderText = "Buscar servidor..."
+    searchBox.PlaceholderColor3 = Color3.fromRGB(148, 158, 178)
+    searchBox.Font = Enum.Font.GothamMedium
+    searchBox.TextSize = 16
+    searchBox.BorderSizePixel = 0
+    searchBox.Parent = main
+    makeCorner(searchBox, 10)
+    makeStroke(searchBox, Color3.fromRGB(121, 146, 255), 1)
+
+    -- LISTA DESLIZABLE (SCROLLINGFRAME)
+    local listFrame = Instance.new("ScrollingFrame")
+    listFrame.Size = UDim2.new(1, -30, 0, 270)
+    listFrame.Position = UDim2.new(0, 15, 0, 150)
+    listFrame.BackgroundColor3 = Color3.fromRGB(23, 27, 40)
+    listFrame.BorderSizePixel = 0
+    listFrame.ScrollBarThickness = 4
+    listFrame.ScrollBarImageColor3 = Color3.fromRGB(116, 219, 255)
+    listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    listFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    listFrame.Parent = main
+    makeCorner(listFrame, 12)
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 8)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = listFrame
+
+    local listPad = Instance.new("UIPadding")
+    listPad.PaddingTop = UDim.new(0, 8)
+    listPad.PaddingLeft = UDim.new(0, 8)
+    listPad.PaddingRight = UDim.new(0, 8)
+    listPad.Parent = listFrame
+
+    local links = {
+        "https://www.roblox.com/games/111111111/Server-1",
+        "https://www.roblox.com/games/222222222/Server-2",
+        "https://www.roblox.com/games/333333333/Server-3",
+        "https://www.roblox.com/games/444444444/Server-4",
+        "https://www.roblox.com/games/555555555/Server-5",
+        "https://www.roblox.com/games/666666666/Server-6",
+        "https://www.roblox.com/games/777777777/Server-7",
+        "https://www.roblox.com/games/888888888/Server-8",
+        "https://www.roblox.com/games/999999999/Server-9",
+        "https://www.roblox.com/games/101010101/Server-10",
+    }
+
+    local slots = {}
+    
+    -- Función para copiar al portapapeles
+    local function copyToClipboard(text, btn)
+        local ok = pcall(function() setclipboard(text) end)
+        if ok then
+            local originalText = btn.Text
+            btn.Text = "✅ ¡Copiado!"
+            btn.BackgroundColor3 = Color3.fromRGB(76, 216, 147)
+            task.wait(1)
+            btn.Text = originalText
+            btn.BackgroundColor3 = Color3.fromRGB(36, 42, 60)
+        else
+            btn.Text = "❌ Error al copiar"
+            task.wait(1)
+            btn.Text = text
+        end
+    end
+
+    for i = 1, 10 do
+        local slot = Instance.new("TextButton")
+        slot.Size = UDim2.new(1, -8, 0, 40)
+        slot.BackgroundColor3 = Color3.fromRGB(36, 42, 60)
+        slot.TextColor3 = Color3.fromRGB(255, 255, 255)
+        slot.BorderSizePixel = 0
+        slot.Text = links[i]
+        slot.Font = Enum.Font.Gotham
+        slot.TextSize = 13
+        slot.TextTruncate = Enum.TextTruncate.AtEnd
+        slot.LayoutOrder = i
+        slot.Parent = listFrame
+        makeCorner(slot, 8)
+
+        slot.MouseButton1Click:Connect(function()
+            copyToClipboard(slot.Text, slot)
+        end)
+        
+        table.insert(slots, slot)
+    end
+
+    -- Botón de búsqueda / reset
+    local randomBtn = Instance.new("TextButton")
+    randomBtn.Size = UDim2.new(1, -30, 0, 40)
+    randomBtn.Position = UDim2.new(0, 15, 1, -55)
+    randomBtn.BackgroundColor3 = Color3.fromRGB(122, 163, 255)
+    randomBtn.BorderSizePixel = 0
+    randomBtn.Text = "🔄 Restablecer Lista"
+    randomBtn.Font = Enum.Font.GothamBold
+    randomBtn.TextSize = 15
+    randomBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    randomBtn.Parent = main
+    makeCorner(randomBtn, 10)
+
+    local function randomize()
+        local order = {}
+        for i = 1, #links do table.insert(order, i) end
+        for i = #order, 2, -1 do
+            local j = math.random(i)
+            order[i], order[j] = order[j], order[i]
+        end
+        for index, slot in ipairs(slots) do
+            slot.Text = links[order[index]]
+            slot.Visible = true
+        end
+    end
+
+    local function filter()
+        local query = string.lower(searchBox.Text)
+        for _, slot in ipairs(slots) do
+            local value = string.lower(slot.Text)
+            slot.Visible = (query == "" or string.find(value, query, 1, true) ~= nil)
+        end
+    end
+
+    searchBox:GetPropertyChangedSignal("Text"):Connect(filter)
+    randomBtn.MouseButton1Click:Connect(randomize)
+
+    -- Hacer la ventana principal arrastrable desde el header
+    makeDraggable(main, header)
+end
+
+-- Iniciar el script
+createKeyScreen()
